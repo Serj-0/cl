@@ -47,21 +47,21 @@ gettask() {
 	IFS=':' read -ra ARGS <<< "$1"
 	#echo "SPLIT: ${ARGS[@]}"
 
-	[ ${#ARGS[@]} -lt 2 ] && TASKFILE="list" && SEARCH="${ARGS[0]}"
-	[ ${#ARGS[@]} -gt 1 ] && TASKFILE="${ARGS[0]}" && SEARCH="${ARGS[1]}"
+	[ ${#ARGS[@]} -lt 2 ] && TASKFILE="$CLDIR/list" && SEARCH="${ARGS[0]}"
+	[ ${#ARGS[@]} -gt 1 ] && TASKFILE="$CLDIR/${ARGS[0]}" && SEARCH="${ARGS[1]}"
 
 	# echo FILE: "$TASKFILE"
 	# echo SEARCH: "$SEARCH"
 
-	[ ! -f "$CLDIR/$TASKFILE" ] && read -p "No checklist \"$TASKFILE\" found. Create it? [Y/n] " P
+	[ ! -f "$TASKFILE" ] && read -p "No checklist \"$TASKFILE\" found. Create it? [Y/n] " P
 	case $P in
 		'n' | 'N') LINE=-1 && return 2 ;;
-		*) touch "$CLDIR/$TASKFILE" ;;
+		*) touch "$TASKFILE" ;;
 	esac
 
-	[ "$2" = "Q" ] && return $(grep "\[.\] $SEARCH$" "$CLDIR/$TASKFILE" | wc -l)
+	[ "$2" = "Q" ] && return $(grep "\[.\] $SEARCH$" "$TASKFILE" | wc -l)
 
-	grep -n "\[$2\].*$SEARCH" $CLDIR/$TASKFILE > $TMP
+	grep -n "\[$2\].*$SEARCH" $TASKFILE > $TMP
 
 	MC=$(wc -l < $TMP)
 
@@ -99,11 +99,11 @@ while getopts ":cn:u:r:t:" ARG; do
 		done
 	    ;;
 	n) 
-		gettask "$OPTARG" "Q" && echo "[ ] $SEARCH" >> "$CLDIR/$TASKFILE"
+		gettask "$OPTARG" "Q" && echo "[ ] $SEARCH" >> "$TASKFILE"
 	    ;;
 	r)
 	    gettask "$OPTARG" "X" || break
-	    sed -i $LINE"s/\[X/\[ /" "$CLDIR/$TASKFILE"
+	    sed -i $LINE"s/\[X/\[ /" "$TASKFILE"
 	    echo "Unchecked: $MATCH"
 	    ;;
 	t)
@@ -111,7 +111,7 @@ while getopts ":cn:u:r:t:" ARG; do
 		;;
 	u)
 	    gettask "$OPTARG" "." || break
-		sed -i $LINE"d" "$CLDIR/$TASKFILE"
+		sed -i $LINE"d" "$TASKFILE"
 	    echo "Removed: $MATCH"
 	    ;;
 	*) 
