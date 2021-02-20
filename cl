@@ -7,8 +7,8 @@ TMP="/tmp/cl.tmp"
 
 usage() {
 echo "Usage: cl [-c] [-[n|r|u] [LIST:]TASK]... [[LIST:]TASK]..."
-    echo "  [[LIST:]TASK]		Check task"
-    echo "  -c			Clear all checked tasks"
+    echo "  [[LIST:]TASK]			Check task"
+    echo "  -c				Clear all checked tasks"
     echo "  -n [[LIST:]TASK]		Add new task"
     echo "  -r [[LIST:]TASK]		Uncheck task"
     echo "  -u [[LIST:]TASK]		Remove task"
