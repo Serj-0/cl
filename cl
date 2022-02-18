@@ -38,19 +38,14 @@ gettask() {
 
 	[ "$SEARCH" == "" ] && SEARCH=$TASKFILE && TASKFILE=$(ls -d $CLDIR/* | grep -v '\.backup$') && MULTIFILE=1 || TASKFILE=$CLDIR/$TASKFILE
 
-	[ $((MULTIFILE)) -eq 0 ] && [ ! -f $TASKFILE ] && read -p "No checklist \"$TASKFILE\" found. Create it? [Y/n] " P
-	case $P in
-		'n' | 'N') LINE=-1 && return 2 ;;
-		'') ;;
-		*) touch "$CLDIR/$TASKFILE" ;;
-	esac
+	[ $((MULTIFILE)) -eq 0 ] && [ ! -f $TASKFILE ] && touch "$TASKFILE"
 
 	if [ "$2" == "N" ]; then
 		[ $((MULTIFILE)) -eq 1 ] && TASKFILE=$CLDIR/list
 		return $(grep "\[.\] $SEARCH$" $TASKFILE | wc -l)
 	fi
 
-	grep -H -n "\[$2\].*$SEARCH" $TASKFILE > $TMP
+	grep -Hn "\[$2\].*$SEARCH" $TASKFILE > $TMP
 
 	MC=$(wc -l < $TMP)
 	[ $MC -eq 0 ] && LINE=-1 && return 1
@@ -105,11 +100,15 @@ for EL in $@; do
 done
 rm -f "$TMP"
 
-for L in $(ls $CLDIR | grep -v "\.backup$");
+echo "list:"
+cat $CLDIR/list
+for L in $(ls $CLDIR | grep -vE "(^list$|\.backup$)");
 do
 	if [ $(wc -l < "$CLDIR/$L") -gt 0 ];
 	then
 		echo "$L:"
 		cat "$CLDIR/$L"
+	else
+		rm "$CLDIR/$L"
 	fi
 done
