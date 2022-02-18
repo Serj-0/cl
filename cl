@@ -6,12 +6,12 @@ TMP="/tmp/cl.tmp"
 [ ! -f "$CLDIR/list" ] && touch $FILE
 
 usage() {
-echo "Usage: cl [-c] [-[n|r|u] [LIST:]TASK]... [[LIST:]TASK]..."
-    echo "  [[LIST:]TASK]			Check task"
+echo "Usage: cl [-c] [[OPTION] LIST:TASK]..."
+    echo "  [LIST:TASK]			Check task"
     echo "  -c				Clear all checked tasks"
-    echo "  -n [[LIST:]TASK]		Add new task"
-    echo "  -r [[LIST:]TASK]		Uncheck task"
-    echo "  -u [[LIST:]TASK]		Remove task"
+    echo "  -n [LIST:TASK]		Add new task"
+    echo "  -r [LIST:TASK]		Uncheck task"
+    echo "  -u [LIST:TASK]		Remove task"
     exit
 }
 
@@ -22,52 +22,49 @@ case "$1" in
 		;;
 esac
 
+#file task is in
 TASKFILE=""
+
+#search input
 SEARCH=""
+
+#text of matched line
 MATCH=""
+
+#index of matched line
 LINE=-1
-# STATUS=' '
 gettask() {
-	#echo "ARG: $1"
-	IFS=':' read -ra ARGS <<< "$1"
-	#echo "SPLIT: ${ARGS[@]}"
+	IFS=':' read TASKFILE SEARCH <<< "$1"
 
-	[ ${#ARGS[@]} -lt 2 ] && TASKFILE="$CLDIR/list" && SEARCH="${ARGS[0]}"
-	[ ${#ARGS[@]} -gt 1 ] && TASKFILE="$CLDIR/${ARGS[0]}" && SEARCH="${ARGS[1]}"
+	[ "$SEARCH" == "" ] && SEARCH=$TASKFILE && TASKFILE=$(ls -d $CLDIR/* | grep -v '\.backup$') && MULTIFILE=1 || TASKFILE=$CLDIR/$TASKFILE
 
-	# echo FILE: "$TASKFILE"
-	# echo SEARCH: "$SEARCH"
-
-	[ ! -f "$TASKFILE" ] && read -p "No checklist \"$TASKFILE\" found. Create it? [Y/n] " P
+	[ $((MULTIFILE)) -eq 0 ] && [ ! -f $TASKFILE ] && read -p "No checklist \"$TASKFILE\" found. Create it? [Y/n] " P
 	case $P in
 		'n' | 'N') LINE=-1 && return 2 ;;
-		*) touch "$TASKFILE" ;;
+		'') ;;
+		*) touch "$CLDIR/$TASKFILE" ;;
 	esac
 
-	[ "$2" = "Q" ] && return $(grep "\[.\] $SEARCH$" "$TASKFILE" | wc -l)
+	if [ "$2" == "N" ]; then
+		[ $((MULTIFILE)) -eq 1 ] && TASKFILE=$CLDIR/list
+		return $(grep "\[.\] $SEARCH$" $TASKFILE | wc -l)
+	fi
 
-	grep -n "\[$2\].*$SEARCH" $TASKFILE > $TMP
+	grep -H -n "\[$2\].*$SEARCH" $TASKFILE > $TMP
 
 	MC=$(wc -l < $TMP)
-
 	[ $MC -eq 0 ] && LINE=-1 && return 1
+	
+	SELEC=1
 	if [ $MC -gt 1 ];
 	then
 		echo "Multiple matches!"
-		sed "s/^\w*://g" $TMP
+		cut -d':' -f1,3 $TMP | sed 's/.*\///'
 		echo "Select one [1-$MC]: "
-		read SELEC
-		
-		ML=$(sed -n $SELEC"p" $TMP)
-		LINE=$(cut -d':' -f1 <<< "$ML")
-		MATCH=$(cut -d':' -f2- <<< "$ML")
-	else
-		LINE=$(cut -d':' -f1 $TMP)
-		MATCH=$(cut -d':' -f2- $TMP)
+		read SELEC		
 	fi
 
-	# echo "MATCH: $MATCH"
-	# echo "LINE:  $LINE"
+	IFS=':' read TASKFILE LINE MATCH <<< "$(sed -n $SELEC'p' $TMP)"
 }
 
 # OPTIONS
@@ -80,7 +77,7 @@ while getopts ":cn:u:r:t:" ARG; do
 		done
 	    ;;
 	n) 
-		gettask "$OPTARG" "Q" && echo "[ ] $SEARCH" >> "$TASKFILE"
+		gettask "$OPTARG" "N" && echo "[ ] $SEARCH" >> "$TASKFILE" && echo "Added: [ ] $SEARCH"
 	    ;;
 	r)
 	    gettask "$OPTARG" "X" || break
@@ -110,7 +107,7 @@ rm -f "$TMP"
 
 for L in $(ls $CLDIR | grep -v "\.backup$");
 do
-	if [ $(wc -l "$CLDIR/$L" | cut -d' ' -f1) -gt 0 ];
+	if [ $(wc -l < "$CLDIR/$L") -gt 0 ];
 	then
 		echo "$L:"
 		cat "$CLDIR/$L"
